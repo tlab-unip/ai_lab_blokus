@@ -1,0 +1,14 @@
+[tool.poetry]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.8, <3.12"
+inference = "^0.25.0"
+ultralytics = "^8.3.27"
+opencv-python = "^4.10.0.84"
+inference-gpu = "^0.25.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
