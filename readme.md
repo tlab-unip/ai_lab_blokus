@@ -7,3 +7,9 @@ Normalization
 ```ps1
 python -m src.detection.normalization
 ```
+
+Tile Detection
+
+```ps1
+python -m src.detection.grid
+```
