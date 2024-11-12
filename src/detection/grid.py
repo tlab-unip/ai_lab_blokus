@@ -39,8 +39,7 @@ def __get_dominant_color(
 def generate_grid(
     image: np.ndarray,
     size: tuple[int, int] = (20, 20),
-    output_dir: str | None = None,
-) -> np.ndarray:
+) -> tuple[np.ndarray, np.ndarray]:
     """generate grid from an image
 
     Args:
@@ -51,35 +50,31 @@ def generate_grid(
     Returns:
         np.ndarray: a grid of colors
     """
-
     width = image.shape[1]
     height = image.shape[0]
     grid_width = width // size[0]
     grid_height = height // size[1]
 
+    img = image.copy()
     grid = np.zeros((size[1], size[0], 3), np.uint8)
     for i, y in enumerate(range(0, height, grid_height)):
         for j, x in enumerate(range(0, width, grid_width)):
             x1 = x + grid_width
             y1 = y + grid_height
 
-            pixels = image[y:y1, x:x1]
+            pixels = img[y:y1, x:x1]
             dominant = __get_dominant_color(pixels)
             grid[i, j] = dominant
 
-            if output_dir != None:
-                pixels[:] = dominant
-                cv2.rectangle(
-                    image,
-                    pt1=(x, y),
-                    pt2=(x1, y1),
-                    color=(0, 0, 0),
-                )
+            pixels[:] = dominant
+            cv2.rectangle(
+                img,
+                pt1=(x, y),
+                pt2=(x1, y1),
+                color=(0, 0, 0),
+            )
 
-    if output_dir != None:
-        cv2.imwrite(os.path.join(output_dir, "grid_full.jpg"), image)
-        cv2.imwrite(os.path.join(output_dir, "grid_mini.jpg"), grid)
-    return grid
+    return grid, img
 
 
 def detect_colors(
@@ -101,7 +96,11 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", help="path to a normalized image", required=True)
+    parser.add_argument("-o", help="output directory")
     args = parser.parse_args()
 
     image = cv2.imread(args.i)
-    generate_grid(image, output_dir="data/outputs")
+    grid, img = generate_grid(image)
+    if args.o != None:
+        cv2.imwrite(os.path.join(args.o, "grid_mini.jpg"), grid)
+        cv2.imwrite(os.path.join(args.o, "grid_full.jpg"), img)
