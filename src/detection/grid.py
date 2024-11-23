@@ -8,15 +8,7 @@ def __get_dominant_color(
     pixels: np.ndarray,
     n_colors: int = 5,
 ) -> np.ndarray:
-    """get dominant color from pixels
-
-    Args:
-        pixels (np.ndarray): pixels to be processed
-        n_colors (int, optional): number of classified colors. Defaults to 5.
-
-    Returns:
-        np.ndarray: one dominant color (GBR)
-    """
+    """get one dominant color from pixels"""
 
     criteria = (
         cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER,
@@ -40,16 +32,7 @@ def generate_grid(
     image: np.ndarray,
     size: tuple[int, int] = (20, 20),
 ) -> tuple[np.ndarray, np.ndarray]:
-    """generate grid from an image
-
-    Args:
-        image (np.ndarray): image to be processed
-        size (tuple[int, int], optional): size of the grid, (width, height). Defaults to (20, 20).
-        output_dir (str | None, optional): output path of processed image. Defaults to None.
-
-    Returns:
-        np.ndarray: a grid of colors
-    """
+    """return a grid of passed-in size and a grid of original size"""
     width = image.shape[1]
     height = image.shape[0]
     grid_width = width // size[0]
@@ -80,7 +63,22 @@ def generate_grid(
 def detect_colors(
     grid: np.ndarray,
 ):
-    pass
+    def mapper(elem):
+        e = [bool(val) for val in elem]
+        match e:
+            case [False, False, True]:
+                return SquareColor.RED
+            case [False, True, False]:
+                return SquareColor.GREEN
+            case [False, True, True]:
+                return SquareColor.YELLOW
+            case [True, False, False]:
+                return SquareColor.BLUE
+            case _:
+                return SquareColor.EMPTY
+
+    result = np.array([[mapper(elem) for elem in row] for row in grid])
+    return result
 
 
 def build_tiles(

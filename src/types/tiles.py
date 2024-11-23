@@ -1,4 +1,3 @@
-import cv2
 from enum import Enum
 
 
@@ -8,6 +7,12 @@ class SquareColor(Enum):
     GREEN = 2
     BLUE = 3
     YELLOW = 4
+
+    def __repr__(self):
+        return self.name
+
+    def __str__(self):
+        return self.name
 
 
 class TileShape:

@@ -1,10 +1,11 @@
 import cv2
 import os
 import numpy as np
-from .board_seg import board_seg_by_cv
+from .board_seg import board_seg_by_model
 
 
 def __color_correction(image):
+    """Modified from https://stackoverflow.com/a/46391574/21237436"""
     result = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
     avg_a = np.average(result[:, :, 1])
     avg_b = np.average(result[:, :, 2])
@@ -44,18 +45,9 @@ def normalize(
     size=(200, 200),
     rgyb_thres=(167, 97, 167, 97),
 ):
-    """apply normalization process on a image
-
-    Args:
-        image (_type_): image to be processed
-        size (tuple, optional): expected size. Defaults to (200, 200).
-
-    Returns:
-        _type_: normalized image
-    """
     img = image.copy()
     img = cv2.bilateralFilter(img, 9, 75, 75)
-    img = board_seg_by_cv(img)
+    img = board_seg_by_model(img)
     img = cv2.resize(img, size)
     img = __color_correction(img)
     img = __color_mapping(img, rgyb_thres)
