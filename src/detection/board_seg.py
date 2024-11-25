@@ -111,7 +111,7 @@ def seg_using_inference(
 
 def seg_using_yolo(
     image,
-    model_path: str = "models/board_seg_v1.pt",
+    model_path,
 ) -> sv.Detections:
     from ultralytics import YOLO
 
@@ -121,9 +121,12 @@ def seg_using_yolo(
     return detections
 
 
-def board_seg_by_model(image):
+def board_seg_by_model(
+    image,
+    model_path: str = "models/board_seg.pt",
+):
     img = image.copy()
-    detections = seg_using_yolo(img)
+    detections = seg_using_yolo(img, model_path)
     mask = list(detections)[0][1]
 
     hull = __get_hull_from_mask(mask)
