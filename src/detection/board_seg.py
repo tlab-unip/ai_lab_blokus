@@ -2,7 +2,6 @@ import cv2
 import os
 import numpy as np
 import supervision as sv
-from collections.abc import Generator
 
 
 def __get_hull_from_mask(mask: np.ndarray):
@@ -94,19 +93,6 @@ def __appx_best_fit_ngon(hull, n: int = 4) -> list[(int, int)]:
     hull = [(int(x), int(y)) for x, y in hull]
 
     return hull
-
-
-def seg_using_inference(
-    image,
-    model_id: str = "blokus_board_seg/1",
-) -> sv.Detections:
-    import inference
-
-    # os.environ["ROBOFLOW_API_KEY"] = ""
-    model = inference.get_model(model_id)
-    result = model.infer(image)[0]
-    detections = sv.Detections.from_inference(result)
-    return detections
 
 
 def seg_using_yolo(
