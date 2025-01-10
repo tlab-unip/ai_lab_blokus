@@ -4,10 +4,11 @@ package-mode = false
 [tool.poetry.dependencies]
 python = ">=3.10, <3.12"
 ultralytics = "^8.3.27"
-blokus-rl = "^0.1.4"
 gradio = "^5.7.1"
 supervision = "^0.25.0"
 opencv-python = "^4.10.0.84"
+pygame = "^2.6.1"
+ipympl = "^0.9.6"
 
 
 [tool.poetry.group.dev.dependencies]
