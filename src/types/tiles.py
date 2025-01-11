@@ -1,7 +1,11 @@
 from enum import Enum
-from typing import Self
+from functools import lru_cache
+from typing import Any, Dict, Self, Tuple
+from joblib import Memory
 
 import numpy as np
+
+memory = Memory("cache/", verbose=0)
 
 
 class SquareColor(Enum):
@@ -18,20 +22,20 @@ class SquareColor(Enum):
         encoding = encoding.upper()
         if encoding not in ["RGB", "GBR", "BGR"]:
             raise ValueError("Unsupported encoding type")
-
-        r, g, b = color
+        vals = [val > 200 for val in color]
+        r, g, b = vals
         if encoding == "GBR":
-            g, b, r = color
+            g, b, r = vals
         elif encoding == "BGR":
-            b, g, r = color
+            b, g, r = vals
 
-        if (r, g, b) == (255, 0, 0):
+        if (r, g, b) == (True, False, False):
             return SquareColor.RED
-        elif (r, g, b) == (0, 255, 0):
+        elif (r, g, b) == (False, True, False):
             return SquareColor.GREEN
-        elif (r, g, b) == (255, 255, 0):
+        elif (r, g, b) == (True, True, False):
             return SquareColor.YELLOW
-        elif (r, g, b) == (0, 0, 255):
+        elif (r, g, b) == (False, False, True):
             return SquareColor.BLUE
         else:
             return SquareColor.EMPTY
@@ -225,33 +229,102 @@ class PieceType(Enum):
         """,
     )
 
+    def __repr__(self):
+        return self.name
+
+    @staticmethod
+    @memory.cache
+    def get_cache(shape=(20, 20)) -> Dict[Any, Dict[Tuple, int]]:
+        cache = {}
+        piece_types = sorted(PieceType, key=lambda p: -np.sum(p.decode()))
+        for piece_type in piece_types:
+            cache[piece_type] = {}
+            for flipping in [False, True]:
+                for rotation in range(4):
+                    for i in range(shape[0]):
+                        for j in range(shape[1]):
+                            translation = (i, j)
+                            bitboard = piece_type.transform_and_padding(
+                                translation=translation,
+                                rotation=rotation,
+                                flipping=flipping,
+                            )
+                            cache[piece_type][
+                                (rotation, flipping, translation)
+                            ] = bitboard
+        return cache
+
+    @lru_cache(maxsize=None)
     def decode(
+        self,
+        rotation=0,
+        flipping=False,
+    ) -> np.ndarray | None:
+        lines = self.value[0].strip().split("\n")
+        height = len(lines)
+        width = len(lines[0])
+        piece = np.zeros((height, width), dtype=int)
+        for i, line in enumerate(lines):
+            for j, char in enumerate(line.strip()):
+                if char == "1":
+                    piece[i, j] = 1
+
+        if flipping:
+            piece = np.fliplr(piece)
+
+        for _ in range(rotation % 4):
+            piece = np.rot90(piece, -1)
+
+        return piece
+
+    @lru_cache(maxsize=None)
+    def transform_and_padding(
         self,
         translation=(0, 0),
         rotation=0,
         flipping=False,
-        size=(20, 20),
-    ) -> np.ndarray:
-        lines = self.value[0].strip().split("\n")
-        height = len(lines)
-        width = len(lines[0])
-        board = np.zeros((height, width), dtype=int)
-        for i, line in enumerate(lines):
-            for j, char in enumerate(line.strip()):
-                if char == "1":
-                    board[i, j] = 1
-
-        if flipping:
-            board = np.fliplr(board)
-
-        for _ in range(rotation % 4):
-            board = np.rot90(board, -1)
-
+        shape=(20, 20),
+    ) -> int:
+        board = self.decode(rotation=rotation, flipping=flipping)
         height, width = board.shape
-        translated_board = np.zeros(size, dtype=int)
+
         trans_x, trans_y = translation
-        if trans_x + height <= size[0] and trans_y + width <= size[1]:
-            translated_board[trans_x : trans_x + height, trans_y : trans_y + width] = (
-                board
-            )
-        return translated_board
+        if trans_x + height > shape[0] or trans_y + width > shape[1]:
+            return 0
+
+        transformed = np.zeros(shape, dtype=int)
+        transformed[trans_x : trans_x + height, trans_y : trans_y + width] = board
+        return encode_bitboard(transformed)
+
+
+def extract_pieces(
+    bitboard: int,
+    shape=(20, 20),
+) -> list[PieceType]:
+    """extract utilized pieces from a bitboard"""
+    cache = PieceType.get_cache()
+
+    used_pieces = []
+    piece_types = sorted(PieceType, key=lambda p: -np.sum(p.decode()))
+    for piece_type in piece_types:
+        for flipping in [False, True]:
+            for rotation in range(4):
+                for i in range(shape[0]):
+                    for j in range(shape[1]):
+                        translation = (i, j)
+                        transformed = cache[piece_type][
+                            (rotation, flipping, translation)
+                        ]
+                        if transformed != 0 and (bitboard & transformed) == transformed:
+                            used_pieces.append(piece_type)
+                            bitboard &= ~transformed
+                            break
+                    else:
+                        continue
+                    break
+                else:
+                    continue
+                break
+    if bitboard != 0:
+        print("Warning: Invalid tiles detected")
+    return used_pieces

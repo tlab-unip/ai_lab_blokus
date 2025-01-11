@@ -32,7 +32,7 @@ def __get_dominant_color(
 def generate_grid(
     image: np.ndarray,
     size: tuple[int, int] = (20, 20),
-) -> tuple[np.ndarray, np.ndarray]:
+) -> np.ndarray:
     """return a grid of color enum and a grid of original size"""
     width = image.shape[1]
     height = image.shape[0]
@@ -48,14 +48,14 @@ def generate_grid(
 
             pixels = img[y:y1, x:x1]
             dominant = __get_dominant_color(pixels)
-            grid[i, j] = SquareColor.fromGBR(dominant)
+            grid[i, j] = SquareColor.fromColor(dominant, "BGR")
     return grid
 
 
 def generate_image(
     grid: npt.NDArray,
     size: tuple[int, int] = (200, 200),
-):
+) -> np.ndarray:
     width = size[0]
     height = size[1]
     grid_width = width // grid.shape[1]
@@ -68,7 +68,7 @@ def generate_image(
             y1 = y + grid_height
 
             pixels = img[y:y1, x:x1]
-            pixels[:] = SquareColor.toGBR(grid[i, j])
+            pixels[:] = SquareColor.toColor(grid[i, j], "BGR")
             cv2.rectangle(
                 img,
                 pt1=(x, y),
@@ -76,10 +76,6 @@ def generate_image(
                 color=(0, 0, 0),
             )
     return img
-
-
-def generate_bitboard(grid):
-    pass
 
 
 if __name__ == "__main__":

@@ -9,6 +9,7 @@ supervision = "^0.25.0"
 opencv-python = "^4.10.0.84"
 pygame = "^2.6.1"
 ipympl = "^0.9.6"
+joblib = "^1.4.2"
 
 
 [tool.poetry.group.dev.dependencies]
