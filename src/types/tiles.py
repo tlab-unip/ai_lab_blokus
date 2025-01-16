@@ -234,11 +234,12 @@ class PieceType(Enum):
 
     @staticmethod
     @memory.cache
-    def get_cache(shape=(20, 20)) -> Dict[Any, Dict[Tuple, int]]:
+    def get_cache(shape=(20, 20)) -> Dict[Any, set[int]]:
+        """get cached transformed pieces, indexed by [PieceType]"""
         cache = {}
         piece_types = sorted(PieceType, key=lambda p: -np.sum(p.decode()))
         for piece_type in piece_types:
-            cache[piece_type] = {}
+            cache[piece_type] = set()
             for flipping in [False, True]:
                 for rotation in range(4):
                     for i in range(shape[0]):
@@ -249,9 +250,8 @@ class PieceType(Enum):
                                 rotation=rotation,
                                 flipping=flipping,
                             )
-                            cache[piece_type][
-                                (rotation, flipping, translation)
-                            ] = bitboard
+                            if bitboard != 0:
+                                cache[piece_type].add(bitboard)
         return cache
 
     @lru_cache(maxsize=None)
@@ -301,29 +301,17 @@ def extract_pieces(
     bitboard: int,
     shape=(20, 20),
 ) -> list[PieceType]:
-    """extract utilized pieces from a bitboard"""
+    """extract utilized pieces from a bitboard, assuming no duplicated pieces"""
     cache = PieceType.get_cache()
 
     used_pieces = []
+    # remove pieces from larger ones
     piece_types = sorted(PieceType, key=lambda p: -np.sum(p.decode()))
     for piece_type in piece_types:
-        for flipping in [False, True]:
-            for rotation in range(4):
-                for i in range(shape[0]):
-                    for j in range(shape[1]):
-                        translation = (i, j)
-                        transformed = cache[piece_type][
-                            (rotation, flipping, translation)
-                        ]
-                        if transformed != 0 and (bitboard & transformed) == transformed:
-                            used_pieces.append(piece_type)
-                            bitboard &= ~transformed
-                            break
-                    else:
-                        continue
-                    break
-                else:
-                    continue
+        for transformed in cache[piece_type]:
+            if transformed != 0 and (bitboard & transformed) == transformed:
+                used_pieces.append(piece_type)
+                bitboard &= ~transformed
                 break
     if bitboard != 0:
         print("Warning: Invalid tiles detected")
