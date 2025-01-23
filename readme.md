@@ -175,16 +175,24 @@ plt.imshow(cv2.cvtColor(main_img, cv2.COLOR_BGR2RGB))
 ```
 
     
-    0: 640x640 1 board, 453.8ms
-    Speed: 9.7ms preprocess, 453.8ms inference, 0.0ms postprocess per image at shape (1, 3, 640, 640)
+    0: 640x640 1 board, 565.8ms
+    Speed: 6.5ms preprocess, 565.8ms inference, 0.0ms postprocess per image at shape (1, 3, 640, 640)
     
 
 
 
 
-    <matplotlib.image.AxesImage at 0x272032aa210>
+    <matplotlib.image.AxesImage at 0x2a892b066d0>
 
 
+
+
+    
+![png](readme_files/readme_10_2.png)
+    
+
+
+### Interactive Gamer Runner
 
 
 ```python
@@ -230,19 +238,52 @@ render_pyplot(GameContext(players, color_masks), key_step_map)
 
 
 
+    RED   	28
+    GREEN 	39
+    BLUE  	30
+    YELLOW	35
+    
+    RED   	42
+    GREEN 	48
+    BLUE  	41
+    YELLOW	43
+    
+    No more possible steps for GREEN
     No more possible steps for BLUE
     No more possible steps for YELLOW
     No more possible steps for RED
     No more possible steps for GREEN
-    RED   	{W5, V3, X5, I3, N5, I4, I5, Z5, O4, T5}
-    GREEN 	{U5, I3, L4, I5, L5, V5, O4, T5}
-    BLUE  	{W5, V3, Y5, I2, F5, X5, I4, L5, V5, U5, O4}
-    YELLOW	{Z4, X5, L4, I4, I5, L5, V5, Z5, O4, T5}
-    
-    RED   	40
+    No more possible steps for BLUE
+    RED   	42
     GREEN 	48
-    BLUE  	36
-    YELLOW	39
+    BLUE  	41
+    YELLOW	43
+    
+    No more possible steps for YELLOW
+    No more possible steps for RED
+    No more possible steps for GREEN
+    No more possible steps for BLUE
+    No more possible steps for YELLOW
+    No more possible steps for RED
+    RED   	42
+    GREEN 	48
+    BLUE  	41
+    YELLOW	43
+    
+    No more possible steps for GREEN
+    No more possible steps for BLUE
+    No more possible steps for YELLOW
+    No more possible steps for RED
+    No more possible steps for GREEN
+    RED   	42
+    GREEN 	48
+    BLUE  	41
+    YELLOW	43
+    
+    RED   	42
+    GREEN 	48
+    BLUE  	41
+    YELLOW	43
     
     
 
@@ -253,5 +294,5 @@ render_pyplot(GameContext(players, color_masks), key_step_map)
 
     [NbConvertApp] Converting notebook readme.ipynb to markdown
     [NbConvertApp] Support files will be in readme_files\
-    [NbConvertApp] Writing 8612 bytes to readme.md
+    [NbConvertApp] Writing 8817 bytes to readme.md
     

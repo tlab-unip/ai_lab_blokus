@@ -1,7 +1,7 @@
 from functools import reduce, wraps
 import operator
 import random
-from typing import Dict, List, Set
+from typing import Callable, Dict, Iterable, Set
 from src.types.tiles import *
 from threading import Thread
 
@@ -15,7 +15,7 @@ class GameContext:
         self,
         players: list[SquareColor],
         game_state: Dict[SquareColor, int],
-        timeout: float = 5,
+        time_limit: float = 5,
     ):
         self.players: list[SquareColor] = players
         self.player_index: int = 0
@@ -25,7 +25,7 @@ class GameContext:
             for player in players
         }
         self.running = True
-        self.timeout = timeout
+        self.time_limit = time_limit
 
     @property
     def current_player(self) -> SquareColor:
@@ -37,13 +37,15 @@ class GameContext:
 
 def __stepper(func):
     """decorator for updating player and timeout handling"""
+
     @wraps(func)
-    def wrapper(context: GameContext, *args, **kwargs):
+    def wrapper(*args, **kwargs):
+        context: GameContext = args[0]
         context.running = True
-        t = Thread(target=func, args=(context,))
+        t = Thread(target=func, args=args, kwargs=kwargs)
         t.daemon = True
         t.start()
-        t.join(context.timeout)
+        t.join(context.time_limit)
         if t.is_alive():
             context.running = False
             t.join()
@@ -115,10 +117,10 @@ def check_valid_step(
 
 
 def __get_choices(
-    pieces: list[PieceType],
+    pieces: Iterable[PieceType],
     player_board: int,
     combined_board: int,
-) -> list[tuple[PieceType, int]]:
+):
     piece_cache = PieceType.get_cache()
     choices = [
         (piece, choice)
@@ -134,7 +136,7 @@ def __get_choices(
 def step_random(context: GameContext):
     """apply a step following random"""
     player = context.current_player
-    pieces = list(context.available_pieces[player])
+    pieces = tuple(context.available_pieces[player])
     if len(pieces) == 0:
         print("No more tiles for", player)
         return
@@ -153,9 +155,9 @@ def step_random(context: GameContext):
 
 @__stepper
 def step_greedy(context: GameContext):
-    """get next move by number of squares"""
+    """get next move following greedy"""
     player = context.current_player
-    pieces = list(context.available_pieces[player])
+    pieces = tuple(context.available_pieces[player])
     if len(pieces) == 0:
         print("No more tiles for", player)
         return
@@ -182,7 +184,6 @@ def step_greedy(context: GameContext):
     else:
         print("No more possible steps for", player)
 
-    # random.shuffle(choices)
     # if len(choices) != 0:
     #     piece_choice = max(choices, key=lambda x: np.sum(x[0].decode()))
     #     context.available_pieces[player].discard(piece_choice[0])
@@ -191,37 +192,40 @@ def step_greedy(context: GameContext):
     #     print("No more possible steps for", player)
 
 
-def __evaluate(context: GameContext) -> list:
-    """evaluate by sum of squares of each player"""
+def __evaluate(context: GameContext):
+    """evaluate by maximizing some value"""
     values = []
     for player in context.players:
         player_board = context.game_state[player]
         combined_board = reduce(operator.or_, context.game_state.values())
+        # pieces = tuple(context.available_pieces[player])
+        # choices = __get_choices(pieces, player_board, combined_board)
+        # values.append(len(choices))
         _, positives = __rules(
             player_board,
             combined_board,
         )
         values.append(bin(positives).count("1"))
-    return values
+    return tuple(values)
 
 
+@lru_cache
 def __maxn(
     context: GameContext,
     depth: int,
     player_index: int,
 ):
-    if depth <= 0 or all(
-        len(pieces) == 0 for pieces in context.available_pieces.values()
-    ):
+    if depth <= 0 or len(set().union(*context.available_pieces.values())) == 0:
         return __evaluate(context)
 
     player = context.players[player_index]
-    pieces = list(context.available_pieces[player])
+    pieces = tuple(context.available_pieces[player])
     player_board = context.game_state[player]
     combined_board = reduce(operator.or_, context.game_state.values())
     choices = __get_choices(pieces, player_board, combined_board)
 
     best_value = [-float("inf")] * len(context.players)
+
     for choice in choices:
         context.game_state[player] |= choice[1]
         context.available_pieces[player].discard(choice[0])
@@ -241,9 +245,14 @@ def __maxn(
 
 
 @__stepper
-def step_maxn(context: GameContext):
+def step_maxn(
+    context: GameContext,
+    max_depth: int = 3,
+):
+    """mxx^n with iterative deepening"""
     player = context.current_player
-    pieces = list(context.available_pieces[player])
+    pieces = tuple(context.available_pieces[player])
+
     if len(pieces) == 0:
         print("No more tiles for", player)
         return
@@ -256,20 +265,23 @@ def step_maxn(context: GameContext):
     best_choice = None
     best_value = [-float("inf")] * len(context.players)
 
-    for choice in choices:
-        context.game_state[player] |= choice[1]
-        context.available_pieces[player].discard(choice[0])
-        value = __maxn(
-            context,
-            3,
-            (player_index + 1) % len(context.players),
-        )
-        context.game_state[player] &= ~choice[1]
-        context.available_pieces[player].add(choice[0])
+    for depth in range(1, max_depth + 1):
+        for choice in choices:
+            context.game_state[player] |= choice[1]
+            context.available_pieces[player].discard(choice[0])
+            value = __maxn(
+                context,
+                depth,
+                (player_index + 1) % len(context.players),
+            )
+            context.game_state[player] &= ~choice[1]
+            context.available_pieces[player].add(choice[0])
 
-        if value[player_index] > best_value[player_index]:
-            best_value = value
-            best_choice = choice
+            if value[player_index] > best_value[player_index]:
+                best_value = value
+                best_choice = choice
+            if not context.running:
+                break
         if not context.running:
             break
 
@@ -278,3 +290,12 @@ def step_maxn(context: GameContext):
         context.game_state[player] |= best_choice[1]
     else:
         print("No more possible steps for", player)
+
+
+def make_step_maxn(depth: int, id=[0]) -> Callable[[GameContext], None]:
+    def step_maxn_func(ctx: GameContext):
+        step_maxn(ctx, depth)
+
+    id[0] += 1
+    step_maxn_func.__name__ = f"step_maxn#{id[0]}_{str(depth)}"
+    return step_maxn_func
