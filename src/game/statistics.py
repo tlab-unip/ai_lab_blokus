@@ -66,7 +66,6 @@ def compute_statistics(
 
 def visualize_results(
     df: pd.DataFrame,
-    output_file: str = "visualization.png",
 ):
     fig, axes = plt.subplots(1, 2, figsize=(14, 7))
 
@@ -93,8 +92,7 @@ def visualize_results(
     axes[1].tick_params(axis="x", rotation=45)
 
     plt.tight_layout()
-    plt.savefig(output_file)
-    # plt.show()
+    plt.show()
 
 
 if __name__ == "__main__":
@@ -131,6 +129,6 @@ if __name__ == "__main__":
     )
 
     df, stats = compute_statistics(results)
-    df.to_csv("results.csv")
-    stats.to_csv("statistics.csv")
+    # df.to_csv("results.csv")
+    # stats.to_csv("statistics.csv")
     visualize_results(df)
